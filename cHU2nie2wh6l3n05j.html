@@ -1,0 +1,510 @@
+<html>
+<head>
+  <base href="https://website-content-reader.vercel.app/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebSummAI - Smart Website Content Analysis</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.0/marked.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #fafafa;
+    }
+
+    .gradient-bg {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gradient-bg::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+    }
+
+    .input-primary {
+      @apply w-full px-4 py-3 border border-gray-300 rounded-lg 
+        focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
+        transition-all duration-200;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .input-primary:hover {
+      border-color: #6366f1;
+    }
+
+    .btn-primary {
+      @apply px-6 py-3 font-medium rounded-lg transition-all duration-200
+        bg-gradient-to-r from-indigo-600 to-indigo-700
+        hover:from-indigo-700 hover:to-indigo-800
+        focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+        text-white shadow-lg hover:shadow-xl;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 300%;
+      height: 300%;
+      background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .btn-primary:hover::after {
+      opacity: 1;
+    }
+
+    .chat-message {
+      padding: 16px;
+      margin: 12px 0;
+      border-radius: 12px;
+      transition: transform 0.2s;
+    }
+
+    .chat-message:hover {
+      transform: scale(1.01);
+    }
+
+    .user-message {
+      background: linear-gradient(to right, #e9ecef, #f8f9fa);
+      margin-left: 20%;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .ai-message {
+      background: linear-gradient(to right, #e3f2fd, #e8f5fe);
+      margin-right: 20%;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+    }
+
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80% { content: '...'; }
+      100% { content: ''; }
+    }
+
+    .loading-dots::after {
+      content: '';
+      animation: dots 1.5s infinite;
+      font-weight: bold;
+    }
+
+    .markdown-body {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #24292e;
+      padding: 20px;
+      background: linear-gradient(to bottom right, #fff, #fafafa);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .markdown-body pre {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #eaecef;
+    }
+
+    .markdown-body code {
+      font-family: 'SF Mono', 'Segoe UI Mono', monospace;
+      padding: 0.2em 0.4em;
+      font-size: 90%;
+      background-color: rgba(27,31,35,0.05);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c7d2fe;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #818cf8;
+    }
+
+    .controls-section {
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.8);
+      margin-bottom: 20px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 200px;
+      height: 6px;
+      background: #e0e7ff;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #6366f1;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #4f46e5;
+    }
+  </style>
+</head>
+<body>
+<div class="min-h-screen">
+  <div class="gradient-bg py-16 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl font-bold text-white text-center mb-8">
+        WebSummAI
+      </h1>
+      <p class="text-xl text-white text-center mb-12">
+        Smart website content analysis powered by AI
+      </p>
+      
+      <div class="card rounded-xl p-6 mb-8">
+        <form id="urlForm" class="space-y-4">
+          <div>
+            <label for="url" class="block text-sm font-medium text-gray-700">Website URL</label>
+            <input type="url" id="url" required class="input-primary mt-1" placeholder="https://example.com">
+          </div>
+          <button type="submit" class="btn-primary w-full">
+            Analyze Content
+          </button>
+        </form>
+      </div>
+
+      <div class="controls-section">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-4">
+            <button id="copyBtn" class="btn-primary">
+              <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+              </svg>
+              Copy Summary
+            </button>
+            <button id="downloadBtn" class="btn-primary">
+              <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              Download Summary
+            </button>
+            <button id="shareBtn" class="btn-primary">
+              <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+              </svg>
+              Share Analysis
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <label class="flex items-center space-x-2">
+              <span class="text-gray-700">Auto-scroll:</span>
+              <input type="checkbox" id="autoScroll" checked class="form-checkbox h-4 w-4 text-indigo-600">
+            </label>
+            
+            <div class="flex items-center space-x-2">
+              <span class="text-gray-700">Font size:</span>
+              <input type="range" id="fontSize" min="12" max="24" value="16" class="mx-2">
+              <span id="fontSizeValue" class="text-gray-700 min-w-[3ch]">16px</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="results" class="card rounded-xl p-6 hidden">
+        <div class="space-y-6">
+          <div>
+            <h3 class="text-lg font-medium text-gray-900">Summary</h3>
+            <div id="summary" class="markdown-body mt-2"></div>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-medium text-gray-900">Chat</h3>
+            <div id="chatContainer" class="chat-container mt-2">
+              <div id="chatHistory" class="space-y-2"></div>
+            </div>
+            <div class="mt-4">
+              <input type="text" id="question" class="input-primary" placeholder="Ask anything about the content...">
+              <button id="askButton" class="btn-primary mt-2 w-full">
+                Ask Question
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="loading" class="hidden">
+        <div class="text-center text-white text-xl">
+          Analyzing<span class="loading-dots"></span>
+        </div>
+      </div>
+
+      <div id="error" class="hidden">
+        <div class="text-center text-red-200 text-xl">
+          Error analyzing content. Please try again.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>marked.setOptions({
+  gfm: true,
+  breaks: true,
+  highlight: function (code, lang) {
+    return code;
+  }
+});
+function getRandomSeed() {
+  return Math.floor(Math.random() * 1000000);
+}
+let chatHistory = [];
+function loadChatHistory() {
+  const savedHistory = localStorage.getItem('websummai_chat_history');
+  return savedHistory ? JSON.parse(savedHistory) : [];
+}
+function saveChatHistory() {
+  localStorage.setItem('websummai_chat_history', JSON.stringify(chatHistory));
+}
+function simulateStreaming(text, element) {
+  const totalDuration = 4000;
+  const totalChunks = Math.min(text.length, 50);
+  const chunkSize = Math.ceil(text.length / totalChunks);
+  const delay = Math.floor(totalDuration / totalChunks);
+  let index = 0;
+  element.innerHTML = '';
+  function appendNextChunk() {
+    if (index < text.length) {
+      const chunk = text.substring(index, index + chunkSize);
+      element.innerHTML = marked.parse(text.substring(0, index + chunkSize));
+      index += chunkSize;
+      setTimeout(appendNextChunk, delay);
+    }
+  }
+  appendNextChunk();
+}
+function copySummary() {
+  const summary = document.getElementById('summary').innerText;
+  navigator.clipboard.writeText(summary);
+  alert('Summary copied to clipboard!');
+}
+function downloadSummary() {
+  const summary = document.getElementById('summary').innerText;
+  const blob = new Blob([summary], {
+    type: 'text/plain'
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'website-summary.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+async function shareAnalysis() {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Website Analysis',
+        text: document.getElementById('summary').innerText,
+        url: window.location.href
+      });
+    } catch (err) {
+      console.error('Share failed:', err);
+    }
+  } else {
+    alert('Web Share API not supported');
+  }
+}
+function updateFontSize() {
+  const size = document.getElementById('fontSize').value;
+  document.getElementById('fontSizeValue').textContent = size + 'px';
+  document.getElementById('summary').style.fontSize = size + 'px';
+  document.getElementById('chatHistory').style.fontSize = size + 'px';
+}
+function handleAutoScroll(element) {
+  if (document.getElementById('autoScroll').checked) {
+    element.scrollTop = element.scrollHeight;
+  }
+}
+function addMessageToChat(message, isUser = false) {
+  const chatHistoryDiv = document.getElementById('chatHistory');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `chat-message ${isUser ? 'user-message' : 'ai-message'} markdown-body`;
+  if (isUser) {
+    messageDiv.innerHTML = marked.parse(message);
+  } else {
+    messageDiv.innerHTML = '';
+    simulateStreaming(message, messageDiv);
+  }
+  chatHistoryDiv.appendChild(messageDiv);
+  handleAutoScroll(chatHistoryDiv);
+  chatHistory.push({
+    role: isUser ? 'user' : 'assistant',
+    content: message,
+    timestamp: new Date().toISOString()
+  });
+  saveChatHistory();
+}
+async function analyzeWebsite(url) {
+  try {
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('results').classList.add('hidden');
+    document.getElementById('error').classList.add('hidden');
+    chatHistory = [];
+    document.getElementById('chatHistory').innerHTML = '';
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const response = await fetch(proxyUrl);
+    const data = await response.json();
+    const content = data.contents;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    const scripts = doc.getElementsByTagName('script');
+    const styles = doc.getElementsByTagName('style');
+    for (const el of [...scripts, ...styles]) {
+      el.remove();
+    }
+    const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null, false);
+    let textContent = '';
+    let node;
+    while (node = walker.nextNode()) {
+      const text = node.textContent.trim();
+      if (text) {
+        textContent += text + '\n';
+      }
+    }
+    textContent = textContent.replace(/\s+/g, ' ').replace(/\n\s*\n/g, '\n').trim();
+    window.websiteContent = textContent;
+    const summaryResponse = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messages: [{
+          role: 'system',
+          content: 'You are a skilled content analyzer. Provide a concise but comprehensive summary of the content. Format response in GitHub Flavored Markdown with appropriate headers, code blocks, and sections.'
+        }, {
+          role: 'user',
+          content: textContent.substring(0, 4000)
+        }],
+        model: 'mistral',
+        seed: getRandomSeed()
+      })
+    });
+    const summaryText = await summaryResponse.text();
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('results').classList.remove('hidden');
+    const summaryElement = document.getElementById('summary');
+    simulateStreaming(summaryText, summaryElement);
+    addMessageToChat('Here is a summary of the content:\n\n' + summaryText, false);
+  } catch (error) {
+    console.error('Error:', error);
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('error').classList.remove('hidden');
+  }
+}
+async function askQuestion(question) {
+  try {
+    addMessageToChat(question, true);
+    const response = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messages: [{
+          role: 'system',
+          content: 'You are a helpful assistant answering questions about website content. Use only the provided text content to answer questions. If the answer cannot be found in the content, say so. Format responses in GitHub Flavored Markdown for better readability.'
+        }, {
+          role: 'user',
+          content: `Website Text Content:\n${window.websiteContent.substring(0, 4000)}\n\nChat History:\n${chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nQuestion: ${question}`
+        }],
+        model: 'mistral',
+        seed: getRandomSeed()
+      })
+    });
+    const answerText = await response.text();
+    addMessageToChat(answerText, false);
+  } catch (error) {
+    console.error('Error:', error);
+    addMessageToChat('Error getting answer. Please try again.', false);
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('copyBtn').addEventListener('click', copySummary);
+  document.getElementById('downloadBtn').addEventListener('click', downloadSummary);
+  document.getElementById('shareBtn').addEventListener('click', shareAnalysis);
+  document.getElementById('fontSize').addEventListener('input', updateFontSize);
+});
+document.getElementById('urlForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const url = document.getElementById('url').value;
+  await analyzeWebsite(url);
+});
+document.getElementById('askButton').addEventListener('click', async () => {
+  const question = document.getElementById('question').value;
+  if (question && window.websiteContent) {
+    document.getElementById('question').value = '';
+    await askQuestion(question);
+  }
+});
+document.getElementById('question').addEventListener('keypress', async e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    const question = e.target.value;
+    if (question && window.websiteContent) {
+      e.target.value = '';
+      await askQuestion(question);
+    }
+  }
+});</script>
+</body>
+</html>
