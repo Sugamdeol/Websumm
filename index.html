@@ -422,7 +422,7 @@ async function analyzeWebsite(url) {
     }
     textContent = textContent.replace(/\s+/g, ' ').replace(/\n\s*\n/g, '\n').trim();
     window.websiteContent = textContent;
-    const summaryResponse = await fetch('https://text.pollinations.ai/', {
+    const summaryResponse = await fetch('https://text.pollinations.ai/openai', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
