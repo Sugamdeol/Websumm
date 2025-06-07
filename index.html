@@ -467,7 +467,7 @@ async function askQuestion(question) {
           role: 'user',
           content: `Website Text Content:\n${window.websiteContent.substring(0, 4000)}\n\nChat History:\n${chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nQuestion: ${question}`
         }],
-        model: 'mistral',
+        model: 'openai-xlarge',
         seed: getRandomSeed()
       })
     });
